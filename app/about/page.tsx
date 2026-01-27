@@ -1,20 +1,26 @@
-import Link from 'next/link'; // これをインポート
-import { Metadata } from 'next';
+import UserForm from "@/components/UserForm";
+import Link from "next/link";
 
-export const metadata: Metadata = {
+export const metadata = {
   title: '私たちについて | My Next App',
-  description: 'このページはNext.jsの学習用に作成されたAboutページです。',
 };
-
 
 export default function AboutPage() {
   return (
-    <div className="p-10">
-      <h1 className="text-2xl font-bold">About ページ</h1>
-      {/* aタグを Linkコンポーネントに書き換える */}
-      <Link href="/" className="text-blue-500 underline">
-        トップへ戻る（爆速！）
-      </Link>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-800">About ページ</h2>
+      <p className="text-gray-600">
+        ここではNext.jsのフォーム操作を体験できます。
+      </p>
+
+      {/* フォームコンポーネントを配置 */}
+      <UserForm />
+
+      <div className="mt-10">
+        <Link href="/" className="text-blue-500 hover:underline">
+          ← トップページへ戻る
+        </Link>
+      </div>
     </div>
   );
 }
