@@ -16,6 +16,11 @@ export default function Header() {
               About
             </Link>
           </li>
+          <li>
+            <Link href="/posts" className="hover:text-blue-400 transition-colors">
+              Posts
+            </Link>
+          </li>
         </ul>
       </nav>
     </header>
