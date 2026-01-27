@@ -21,6 +21,11 @@ export default function Header() {
               Posts
             </Link>
           </li>
+          <li>
+            <Link href="/board" className="hover:text-blue-400 transition-colors">
+              Board
+            </Link>
+          </li>
         </ul>
       </nav>
     </header>
