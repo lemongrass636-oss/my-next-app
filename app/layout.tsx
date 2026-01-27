@@ -19,15 +19,29 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+    <html lang="ja">
+      <body>
+        {/* 全ページ共通のヘッダー */}
+        <header className="bg-gray-800 text-white p-4 flex gap-4">
+          <nav>
+            <ul className="flex gap-4">
+              <li><a href="/" className="hover:underline">Home</a></li>
+              <li><a href="/about" className="hover:underline">About</a></li>
+            </ul>
+          </nav>
+        </header>
+
+        {/* 各ページの中身がここに入る */}
+        <main>{children}</main>
+
+        {/* 全ページ共通のフッター */}
+        <footer className="p-4 border-t mt-10 text-center text-sm text-gray-500">
+          © 2026 My Next.js App
+        </footer>
       </body>
     </html>
   );
