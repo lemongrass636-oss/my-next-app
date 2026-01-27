@@ -1,12 +1,13 @@
-import Link from 'next/link';
+import Counter from "@/components/Counter";
 
 export default function Home() {
   return (
-    <main className="p-10">
-      <h1 className="text-2xl font-bold">トップページ</h1>
-      <Link href="/about" className="text-green-500 underline">
-        Aboutページへ行く
-      </Link>
-    </main>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold">トップページへようこそ！</h2>
+      <p>ここでは、Next.jsのクライアントコンポーネントを試しています。</p>
+      
+      {/* 作成したカウンターを呼び出す */}
+      <Counter />
+    </div>
   );
 }
