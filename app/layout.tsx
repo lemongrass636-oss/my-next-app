@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Header from "@/components/Header"; // 追加
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -19,29 +20,19 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <html lang="ja">
-      <body>
-        {/* 全ページ共通のヘッダー */}
-        <header className="bg-gray-800 text-white p-4 flex gap-4">
-          <nav>
-            <ul className="flex gap-4">
-              <li><a href="/" className="hover:underline">Home</a></li>
-              <li><a href="/about" className="hover:underline">About</a></li>
-            </ul>
-          </nav>
-        </header>
-
-        {/* 各ページの中身がここに入る */}
-        <main>{children}</main>
-
-        {/* 全ページ共通のフッター */}
-        <footer className="p-4 border-t mt-10 text-center text-sm text-gray-500">
-          © 2026 My Next.js App
-        </footer>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        {/* ここにHeaderを追加！ */}
+        <Header />
+        
+        {/* メインコンテンツを少し整えるために padding 等を追加しても良いです */}
+        <main className="max-w-4xl mx-auto p-6">
+          {children}
+        </main>
       </body>
     </html>
   );

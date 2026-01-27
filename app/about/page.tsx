@@ -1,4 +1,11 @@
 import Link from 'next/link'; // これをインポート
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: '私たちについて | My Next App',
+  description: 'このページはNext.jsの学習用に作成されたAboutページです。',
+};
+
 
 export default function AboutPage() {
   return (
