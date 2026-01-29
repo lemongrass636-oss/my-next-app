@@ -1,32 +1,31 @@
-import { createClient } from "@/lib/supabase-server"; // 昨日のサーバー用クライアント
-import { redirect } from "next/navigation";
-import PostForm from "@/components/PostForm"; // 投稿フォームのコンポーネント
-import { revalidatePath } from "next/cache";
-import { supabase } from "@/lib/supabase"; // DB窓口をインポート
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2 } from "lucide-react"; // アイコンを使う場合（lucide-reactはNext.jsに標準で入っています）
-
+import { createClient } from "@/lib/supabase-server";
+import PostForm from "@/components/PostForm";
 
 export default async function BoardPage() {
   const supabase = createClient();
+
+  // 1. ログインユーザー情報を取得
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 1. 投稿一覧などのデータ取得
-  const { data: posts } = await supabase
+  // 2. 投稿一覧を取得（最新順）
+  const { data: posts, error } = await supabase
     .from("posts")
     .select("*")
     .order("created_at", { ascending: false });
 
-  return (
-    <div className="max-w-4xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6">掲示板</h1>
+  if (error) {
+    console.error("データ取得エラー:", error.message);
+  }
 
-      {/* 2. ログイン状態による条件分岐 */}
+  return (
+    <div className="max-w-4xl mx-auto p-4 text-black">
+      <h1 className="text-2xl font-bold mb-6 text-black">掲示板</h1>
+
+      {/* --- 投稿フォームエリア --- */}
       {user ? (
-        <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
-          <p className="text-sm text-blue-600 mb-2">
-            ログイン中: {user.email} さんとして投稿します
+        <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-100 text-black">
+          <p className="text-sm text-blue-600 mb-2 font-medium">
+            ログイン中: {user.email} さん
           </p>
           <PostForm />
         </div>
@@ -42,13 +41,26 @@ export default async function BoardPage() {
         </div>
       )}
 
-      {/* 3. 投稿一覧の表示（ここは全員見れる） */}
+      {/* --- 投稿一覧エリア --- */}
       <div className="space-y-4">
-        {posts?.map((post) => (
-          <div key={post.id} className="p-4 border rounded shadow-sm">
-            {post.content}
-          </div>
-        ))}
+        {posts && posts.length > 0 ? (
+          posts.map((post) => (
+            <div key={post.id} className="p-4 border rounded shadow-sm bg-white">
+              <div className="flex justify-between items-start mb-2">
+                {/* 投稿者のIDを表示（最初の8文字） */}
+                <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded">
+                  Author ID: {post.user_id?.substring(0, 8)}...
+                </span>
+                <span className="text-xs text-gray-400">
+                  {new Date(post.created_at).toLocaleString("ja-JP")}
+                </span>
+              </div>
+              <p className="text-gray-800 whitespace-pre-wrap">{post.content}</p>
+            </div>
+          ))
+        ) : (
+          <p className="text-center text-gray-400 py-10">まだ投稿がありません。</p>
+        )}
       </div>
     </div>
   );
