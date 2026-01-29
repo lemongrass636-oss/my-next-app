@@ -29,3 +29,27 @@ export async function addPost(formData: FormData) {
   // 掲示板ページを更新して、新しい投稿を即座に反映させる
   revalidatePath("/board");
 }
+export async function updateProfile(formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("認証が必要です");
+
+  const newEmail = formData.get("email") as string;
+  const displayName = formData.get("display_name") as string;
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ 
+      email: newEmail,
+      display_name: displayName 
+    })
+    .eq("id", user.id); // 自分のIDの行だけ更新
+
+  if (error) {
+    console.error("更新エラー:", error.message);
+    return;
+  }
+
+  revalidatePath("/board");
+}
