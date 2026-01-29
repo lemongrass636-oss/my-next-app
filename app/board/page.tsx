@@ -7,10 +7,19 @@ export default async function BoardPage() {
   // 1. ログインユーザー情報を取得
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 2. 投稿一覧を取得（最新順）
+  // 2. 投稿一覧を取得（profilesテーブルからemailも一緒に取得する）
+  // .select() の中身を書き換えて、リレーション先のデータも指定しています
   const { data: posts, error } = await supabase
     .from("posts")
-    .select("*")
+    .select(`
+      id,
+      content,
+      created_at,
+      user_id,
+      profiles (
+        email
+      )
+    `)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -44,12 +53,12 @@ export default async function BoardPage() {
       {/* --- 投稿一覧エリア --- */}
       <div className="space-y-4">
         {posts && posts.length > 0 ? (
-          posts.map((post) => (
+          posts.map((post: any) => (
             <div key={post.id} className="p-4 border rounded shadow-sm bg-white">
               <div className="flex justify-between items-start mb-2">
-                {/* 投稿者のIDを表示（最初の8文字） */}
+                {/* ここで profiles 内の email を表示しています */}
                 <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded">
-                  Author ID: {post.user_id?.substring(0, 8)}...
+                  投稿者: {post.profiles?.email || "不明なユーザー"}
                 </span>
                 <span className="text-xs text-gray-400">
                   {new Date(post.created_at).toLocaleString("ja-JP")}
