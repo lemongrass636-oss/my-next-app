@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase-server";
 import PostForm from "@/components/PostForm";
+export const revalidate = 0; // キャッシュを無効化して常に最新データを取得
 
 export default async function BoardPage() {
   const supabase = createClient();
