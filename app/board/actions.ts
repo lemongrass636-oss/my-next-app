@@ -54,3 +54,24 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath("/board");
 }
+export async function deletePost(formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("ログインが必要です");
+
+  const postId = formData.get("postId") as string;
+
+  const { error } = await supabase
+    .from("posts")
+    .delete()
+    .eq("id", postId)
+    .eq("user_id", user.id); // 念のため、自分の投稿であることを条件に含める
+
+  if (error) {
+    console.error("削除エラー:", error.message);
+    return;
+  }
+
+  revalidatePath("/board");
+}
