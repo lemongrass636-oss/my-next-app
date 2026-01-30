@@ -2,49 +2,42 @@
 
 import { createClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
+// --- 1. 投稿を追加する (PostFormから呼ばれる) ---
 export async function addPost(formData: FormData) {
-  const content = formData.get("content") as string;
   const supabase = createClient();
-
-  // 現在ログインしているユーザーの情報を取得
   const { data: { user } } = await supabase.auth.getUser();
 
-  // ログインしていない場合はエラー（セキュリティ対策）
-  if (!user) {
-    throw new Error("ログインが必要です");
-  }
+  if (!user) throw new Error("認証が必要です");
 
-  // Supabaseの posts テーブルにデータを挿入
-  const { error } = await supabase.from("posts").insert({
-    content: content,
-    user_id: user.id, // 誰が書いたか保存する
-  });
+  const content = formData.get("content") as string;
+  if (!content) return;
+
+  const { error } = await supabase
+    .from("posts")
+    .insert([{ content, user_id: user.id }]);
 
   if (error) {
     console.error("投稿エラー:", error.message);
     return;
   }
 
-  // 掲示板ページを更新して、新しい投稿を即座に反映させる
   revalidatePath("/board");
 }
-// app/board/actions.ts
 
+// --- 2. プロフィール（ニックネーム）を更新する ---
 export async function updateProfile(formData: FormData) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) throw new Error("認証が必要です");
 
-  // 入力された名前を取得
   const nickname = formData.get("nickname") as string;
 
   const { error } = await supabase
     .from("profiles")
-    .update({ 
-      display_name: nickname // email ではなく display_name を更新
-    })
+    .update({ display_name: nickname })
     .eq("id", user.id);
 
   if (error) {
@@ -54,6 +47,8 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath("/board");
 }
+
+// --- 3. 投稿を削除する (DeleteButtonから呼ばれる) ---
 export async function deletePost(formData: FormData) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -66,7 +61,7 @@ export async function deletePost(formData: FormData) {
     .from("posts")
     .delete()
     .eq("id", postId)
-    .eq("user_id", user.id); // 念のため、自分の投稿であることを条件に含める
+    .eq("user_id", user.id);
 
   if (error) {
     console.error("削除エラー:", error.message);
@@ -74,4 +69,17 @@ export async function deletePost(formData: FormData) {
   }
 
   revalidatePath("/board");
+}
+
+// --- 4. ログアウト ---
+export async function signOut() {
+  const supabase = createClient();
+  
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    await supabase.auth.signOut();
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/");
 }
