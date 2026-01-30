@@ -81,5 +81,6 @@ export async function signOut() {
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
+  // リダイレクト先を /login に変更
+  redirect("/login"); 
 }
