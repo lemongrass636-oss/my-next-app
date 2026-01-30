@@ -24,7 +24,7 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  // ログインしていない、かつ /board や /posts にアクセスしようとしている場合
+  // ログインしていない、かつ /Homeと/About、/board や /posts にアクセスしようとしている場合
   const protectedRoutes = ['/', '/about', '/board', '/posts']
   const isProtectedRoute = protectedRoutes.some(path => request.nextUrl.pathname.startsWith(path))
 
