@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase-server";
 import { redirect } from "next/navigation";
 import { addPost, deletePost, updateProfile } from "./actions";
-import AvatarUpload from "@/components/AvatarUpload"; // インポート追加
+import AvatarUpload from "@/components/AvatarUpload";
 
 export default async function BoardPage() {
   const supabase = createClient();
@@ -12,7 +12,7 @@ export default async function BoardPage() {
     redirect("/login");
   }
 
-  // 2. プロフィール情報の取得（avatar_urlを追加）
+  // 2. プロフィール情報の取得
   const { data: currentProfile } = await supabase
     .from("profiles")
     .select("display_name, avatar_url")
@@ -21,7 +21,7 @@ export default async function BoardPage() {
 
   const currentNickname = currentProfile?.display_name;
 
-  // 3. 投稿一覧の取得（profilesのavatar_urlも一緒に取得するように修正）
+  // 3. 投稿一覧の取得
   const { data: posts, error } = await supabase
     .from("posts")
     .select(`
@@ -41,8 +41,8 @@ export default async function BoardPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-4 text-black">
-      <h1 className="text-2xl font-bold mb-6">掲示板</h1>
+    <div className="max-w-2xl mx-auto p-4 text-black pb-20">
+      <h1 className="text-2xl font-bold mb-6 text-center">掲示板</h1>
 
       {/* ユーザー設定（アコーディオン） */}
       <div className="mb-8">
@@ -51,9 +51,7 @@ export default async function BoardPage() {
             ⚙️ プロフィール設定
           </summary>
           <div className="mt-4">
-            {/* アイコンアップロード用コンポーネント */}
             <AvatarUpload userId={user.id} currentAvatarUrl={currentProfile?.avatar_url} />
-
             <form action={updateProfile} className="mt-4 flex flex-col gap-4 max-w-sm mx-auto">
               <div>
                 <label className="text-xs text-gray-500 font-bold ml-1">ニックネーム</label>
@@ -75,70 +73,88 @@ export default async function BoardPage() {
         </details>
       </div>
 
-      {/* 投稿フォーム */}
-      <form action={addPost} className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
-        <textarea
-          name="content"
-          placeholder="いまどうしてる？"
-          className="w-full p-3 border rounded-md text-black focus:ring-2 focus:ring-blue-400 outline-none"
-          rows={3}
-          required
-        />
-        <div className="flex justify-between items-center mt-2">
-          <p className="text-xs text-gray-500">
-            ログイン中: <span className="font-bold">{currentNickname || user.email}</span>
-          </p>
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-6 py-2 rounded-full text-sm font-bold hover:bg-blue-700 transition"
-          >
-            投稿する
-          </button>
-        </div>
-      </form>
-
       {/* 投稿一覧 */}
-      <div className="space-y-4">
-        {posts?.map((post: any) => (
-          <div key={post.id} className="p-4 bg-white border rounded-lg shadow-sm flex gap-4">
-            {/* 投稿の横にアイコンを表示 */}
-            <div className="flex-shrink-0">
-              {post.profiles?.avatar_url ? (
-                <img
-                  src={post.profiles.avatar_url}
-                  alt="avatar"
-                  className="w-10 h-10 rounded-full object-cover border"
-                />
-              ) : (
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-[10px] text-gray-400">
-                  No Image
-                </div>
-              )}
-            </div>
+      <div className="space-y-6 mb-10">
+        {posts?.map((post: any) => {
+          // 自分の投稿かどうかを判定
+          const isMyPost = user.id === post.user_id;
 
-            <div className="flex-grow">
-              <div className="flex justify-between items-start">
-                <span className="font-bold text-sm text-blue-900">
+          return (
+            <div 
+              key={post.id} 
+              className={`flex items-end gap-2 ${isMyPost ? "flex-row-reverse" : "flex-row"}`}
+            >
+              {/* アイコン */}
+              <div className="flex-shrink-0 mb-1">
+                {post.profiles?.avatar_url ? (
+                  <img
+                    src={post.profiles.avatar_url}
+                    alt="avatar"
+                    className="w-9 h-9 rounded-full object-cover border shadow-sm"
+                  />
+                ) : (
+                  <div className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center text-[10px] text-gray-400 border">
+                    No
+                  </div>
+                )}
+              </div>
+
+              {/* 投稿内容の塊 */}
+              <div className={`flex flex-col max-w-[75%] ${isMyPost ? "items-end" : "items-start"}`}>
+                {/* 名前 */}
+                <span className="text-[10px] text-gray-500 mb-1 px-1">
                   {post.profiles?.display_name || "名無しさん"}
                 </span>
-                <span className="text-[10px] text-gray-400">
-                  {new Date(post.created_at).toLocaleString("ja-JP")}
-                </span>
-              </div>
-              <p className="mt-1 text-sm whitespace-pre-wrap">{post.content}</p>
 
-              {/* 自分の投稿なら削除ボタンを表示 */}
-              {user.id === post.user_id && (
-                <form action={deletePost} className="mt-2 text-right">
-                  <input type="hidden" name="postId" value={post.id} />
-                  <button className="text-xs text-red-400 hover:text-red-600 transition">
-                    削除する
-                  </button>
-                </form>
-              )}
+                {/* 吹き出し */}
+                <div
+                  className={`p-3 rounded-2xl text-sm shadow-sm ${
+                    isMyPost
+                      ? "bg-blue-600 text-white rounded-tr-none" 
+                      : "bg-white text-black border border-gray-200 rounded-tl-none"
+                  }`}
+                >
+                  <p className="whitespace-pre-wrap break-words">{post.content}</p>
+                </div>
+
+                {/* 日時と削除ボタン */}
+                <div className={`flex items-center gap-2 mt-1 px-1 ${isMyPost ? "flex-row-reverse" : "flex-row"}`}>
+                  <span className="text-[9px] text-gray-400">
+                    {new Date(post.created_at).toLocaleTimeString("ja-JP", { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  
+                  {isMyPost && (
+                    <form action={deletePost}>
+                      <input type="hidden" name="postId" value={post.id} />
+                      <button className="text-[10px] text-red-400 hover:text-red-600 transition">
+                        削除
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
+      </div>
+
+      {/* 画面下部に固定された投稿フォーム */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm border-t p-4">
+        <form action={addPost} className="max-w-2xl mx-auto flex gap-2">
+          <textarea
+            name="content"
+            placeholder="メッセージを入力..."
+            className="flex-grow p-2 border rounded-xl text-sm text-black focus:ring-2 focus:ring-blue-400 outline-none resize-none"
+            rows={1}
+            required
+          />
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition"
+          >
+            送信
+          </button>
+        </form>
       </div>
     </div>
   );
