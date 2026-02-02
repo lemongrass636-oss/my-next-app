@@ -1,16 +1,28 @@
 import { createClient } from "@/lib/supabase-server";
-import PostForm from "@/components/PostForm";
-import DeleteButton from "@/components/DeleteButton";
-import { updateProfile } from "@/app/board/actions";
-
-export const revalidate = 0;
+import { redirect } from "next/navigation";
+import { addPost, deletePost, updateProfile } from "./actions";
+import AvatarUpload from "@/components/AvatarUpload"; // インポート追加
 
 export default async function BoardPage() {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
-  // 1. 投稿一覧と一緒に、ログインユーザー自身のプロフィールも取得する
-  const { data: posts } = await supabase
+  // 1. ユーザー情報の取得
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/login");
+  }
+
+  // 2. プロフィール情報の取得（avatar_urlを追加）
+  const { data: currentProfile } = await supabase
+    .from("profiles")
+    .select("display_name, avatar_url")
+    .eq("id", user.id)
+    .single();
+
+  const currentNickname = currentProfile?.display_name;
+
+  // 3. 投稿一覧の取得（profilesのavatar_urlも一緒に取得するように修正）
+  const { data: posts, error } = await supabase
     .from("posts")
     .select(`
       id,
@@ -18,98 +30,113 @@ export default async function BoardPage() {
       created_at,
       user_id,
       profiles (
-        display_name
+        display_name,
+        avatar_url
       )
     `)
     .order("created_at", { ascending: false });
 
-  // 2. ログインユーザーの現在のニックネームを取得（警告表示用）
-  let currentNickname = null;
-  if (user) {
-    const { data: myProfile } = await supabase
-      .from("profiles")
-      .select("display_name")
-      .eq("id", user.id)
-      .single();
-    currentNickname = myProfile?.display_name;
+  if (error) {
+    console.error("データ取得エラー:", error.message);
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 text-black">
-      <h1 className="text-3xl font-bold mb-8 border-b pb-2">SNS掲示板</h1>
+    <div className="max-w-2xl mx-auto p-4 text-black">
+      <h1 className="text-2xl font-bold mb-6">掲示板</h1>
 
-      {user ? (
-        <div className="space-y-6 mb-12">
-          
-          {/* --- 【追加】ニックネーム未設定時の警告アラート --- */}
-          {!currentNickname && (
-            <div className="p-6 bg-red-50 border-2 border-red-200 rounded-xl">
-              <h3 className="text-red-700 font-bold flex items-center gap-2 mb-2">
-                ⚠️ ニックネームが設定されていません
-              </h3>
-              <p className="text-sm text-red-600 mb-4">
-                投稿する前に、あなたのお名前（ニックネーム）を決めてください。
-              </p>
-              <form action={updateProfile} className="flex gap-2">
-                <input 
-                  name="nickname" 
-                  required
-                  placeholder="例: 山田太郎"
-                  className="flex-1 p-2 border-2 border-red-200 rounded text-sm text-black outline-none focus:border-red-400"
+      {/* ユーザー設定（アコーディオン） */}
+      <div className="mb-8">
+        <details className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <summary className="cursor-pointer text-sm font-semibold text-gray-700">
+            ⚙️ プロフィール設定
+          </summary>
+          <div className="mt-4">
+            {/* アイコンアップロード用コンポーネント */}
+            <AvatarUpload userId={user.id} currentAvatarUrl={currentProfile?.avatar_url} />
+
+            <form action={updateProfile} className="mt-4 flex flex-col gap-4 max-w-sm mx-auto">
+              <div>
+                <label className="text-xs text-gray-500 font-bold ml-1">ニックネーム</label>
+                <input
+                  name="nickname"
+                  defaultValue={currentNickname || ""}
+                  placeholder="未設定"
+                  className="w-full p-2 border rounded text-sm text-black"
                 />
-                <button type="submit" className="bg-red-600 text-white px-4 py-2 rounded text-sm font-bold hover:bg-red-700 transition">
-                  名前を登録
-                </button>
-              </form>
-            </div>
-          )}
-
-          {/* ニックネーム設定済みの場合のみ投稿フォームを表示する（任意） */}
-          {currentNickname ? (
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-sm text-blue-600 mb-3 font-medium">
-                ✨ ログイン中: <span className="font-bold">{currentNickname}</span> さん
-              </p>
-              <PostForm />
-            </div>
-          ) : (
-            <div className="p-4 bg-gray-100 rounded-lg border border-gray-200 opacity-50 pointer-events-none">
-              <p className="text-sm text-gray-500">名前を設定すると投稿できるようになります</p>
-            </div>
-          )}
-
-          {/* 既存のプロフィール編集（アコーディオン） */}
-          <details className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-            <summary className="cursor-pointer text-sm font-semibold text-gray-700">
-              ⚙️ 設定変更
-            </summary>
-            <form action={updateProfile} className="mt-4 flex flex-col gap-4 max-w-sm">
-              <input name="nickname" defaultValue={currentNickname || ""} className="p-2 border rounded text-sm text-black" />
-              <button type="submit" className="bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold">更新</button>
+              </div>
+              <button
+                type="submit"
+                className="bg-gray-800 text-white px-4 py-2 rounded text-sm font-bold hover:bg-black transition"
+              >
+                名前を更新
+              </button>
             </form>
-          </details>
+          </div>
+        </details>
+      </div>
+
+      {/* 投稿フォーム */}
+      <form action={addPost} className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-100">
+        <textarea
+          name="content"
+          placeholder="いまどうしてる？"
+          className="w-full p-3 border rounded-md text-black focus:ring-2 focus:ring-blue-400 outline-none"
+          rows={3}
+          required
+        />
+        <div className="flex justify-between items-center mt-2">
+          <p className="text-xs text-gray-500">
+            ログイン中: <span className="font-bold">{currentNickname || user.email}</span>
+          </p>
+          <button
+            type="submit"
+            className="bg-blue-600 text-white px-6 py-2 rounded-full text-sm font-bold hover:bg-blue-700 transition"
+          >
+            投稿する
+          </button>
         </div>
-      ) : (
-        <div className="mb-12 p-8 bg-gray-50 rounded-lg border text-center text-black">
-          <a href="/login" className="bg-blue-600 text-white px-8 py-3 rounded-md font-bold">ログインして参加</a>
-        </div>
-      )}
+      </form>
 
       {/* 投稿一覧 */}
-      <h2 className="text-xl font-bold mb-4">💬 最新の投稿</h2>
       <div className="space-y-4">
         {posts?.map((post: any) => (
-          <div key={post.id} className="p-5 border rounded-xl shadow-sm bg-white">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-[13px] font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                @{post.profiles?.display_name || "名無しのユーザー"}
-              </span>
-              <div className="flex items-center gap-4">
-                <span className="text-[11px] text-gray-400">{new Date(post.created_at).toLocaleString("ja-JP")}</span>
-                {user && post.user_id === user.id && <DeleteButton postId={post.id} />}
-              </div>
+          <div key={post.id} className="p-4 bg-white border rounded-lg shadow-sm flex gap-4">
+            {/* 投稿の横にアイコンを表示 */}
+            <div className="flex-shrink-0">
+              {post.profiles?.avatar_url ? (
+                <img
+                  src={post.profiles.avatar_url}
+                  alt="avatar"
+                  className="w-10 h-10 rounded-full object-cover border"
+                />
+              ) : (
+                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-[10px] text-gray-400">
+                  No Image
+                </div>
+              )}
             </div>
-            <p className="text-gray-700 whitespace-pre-wrap">{post.content}</p>
+
+            <div className="flex-grow">
+              <div className="flex justify-between items-start">
+                <span className="font-bold text-sm text-blue-900">
+                  {post.profiles?.display_name || "名無しさん"}
+                </span>
+                <span className="text-[10px] text-gray-400">
+                  {new Date(post.created_at).toLocaleString("ja-JP")}
+                </span>
+              </div>
+              <p className="mt-1 text-sm whitespace-pre-wrap">{post.content}</p>
+
+              {/* 自分の投稿なら削除ボタンを表示 */}
+              {user.id === post.user_id && (
+                <form action={deletePost} className="mt-2 text-right">
+                  <input type="hidden" name="postId" value={post.id} />
+                  <button className="text-xs text-red-400 hover:text-red-600 transition">
+                    削除する
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         ))}
       </div>
