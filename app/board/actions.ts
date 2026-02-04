@@ -84,3 +84,29 @@ export async function signOut() {
   // リダイレクト先を /login に変更
   redirect("/login"); 
 }
+// いいねの切り替え（トグル）
+export async function toggleLike(formData: FormData) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("ログインが必要です");
+
+  const postId = formData.get("postId") as string;
+  const isLiked = formData.get("isLiked") === "true";
+
+  if (isLiked) {
+    // すでにいいねしていれば削除
+    await supabase
+      .from("likes")
+      .delete()
+      .eq("post_id", postId)
+      .eq("user_id", user.id);
+  } else {
+    // まだなら追加
+    await supabase
+      .from("likes")
+      .insert({ post_id: postId, user_id: user.id });
+  }
+
+  revalidatePath("/board");
+}
