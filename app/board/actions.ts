@@ -7,21 +7,20 @@ import { redirect } from "next/navigation";
 // --- 1. 投稿を追加する (PostFormから呼ばれる) ---
 export async function addPost(formData: FormData) {
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("認証が必要です");
-
   const content = formData.get("content") as string;
-  if (!content) return;
-
-  const { error } = await supabase
-    .from("posts")
-    .insert([{ content, user_id: user.id }]);
-
-  if (error) {
-    console.error("投稿エラー:", error.message);
-    return;
+  
+  // 空文字チェック（空白だけの投稿もNG）
+  if (!content || !content.trim()) {
+    return; 
   }
+
+const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  await supabase.from("posts").insert({
+    content,
+    user_id: user.id,
+  });
 
   revalidatePath("/board");
 }
